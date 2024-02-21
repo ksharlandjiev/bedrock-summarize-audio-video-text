@@ -1,0 +1,1 @@
+Please provide a summary of the following text: {input_text}

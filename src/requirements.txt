@@ -1,0 +1,7 @@
+boto3
+python-dotenv
+pyperclip
+json
+sys
+os
+spacy
