@@ -14,14 +14,17 @@ from handlers.s3reader_handler import S3ReaderHandler
 from handlers.s3writer_handler import S3WriterHandler
 from handlers.anonymize_handler import AnonymizeHandler
 from handlers.clipboard_handler import ClipboardHandler
+from handlers.http_handler import HTTPHandler
 import utils
 
 # Load environment variables from .env file
 load_dotenv()
 
 def determine_input_type(file_path):
-    if "youtube.com" in file_path or "youtu.be" in file_path:
+    if "youtube" in file_path or "youtu.be" in file_path:
         return "youtube_url"
+    elif file_path.startswith(('http')):
+        return "http"    
     elif file_path.startswith(('s3://')):
         return "s3"    
     elif file_path.endswith(('.mp3', '.mp4', '.m4a', '.wav', '.flac', '.mov', '.avi')):
@@ -43,31 +46,33 @@ def construct_chain(input_type):
     bedrock_handler = BedrockHandler()
     s3reader_handler = S3ReaderHandler()
     s3writer_handler = S3WriterHandler()
+    http_handler = HTTPHandler()
     
 
     # Use if-elif-else to construct the appropriate chain. In Python 3.10 we could use match statement.
     if input_type == "youtube_url":
         chain = youtube_handler
-        current_handler = youtube_handler.set_next(s3writer_handler).set_next(transcription_handler)#.set_next(prompt_handler).set_next(bedrock_handler)    
+        current_handler = youtube_handler.set_next(s3writer_handler).set_next(transcription_handler)
     elif input_type == "multimedia_file":
         chain = s3writer_handler
-        current_handler = s3writer_handler.set_next(transcription_handler)#.set_next(prompt_handler).set_next(bedrock_handler)
+        current_handler = s3writer_handler.set_next(transcription_handler)
     elif input_type == "pdf":
         chain = pdf_handler
         current_handler = pdf_handler 
-        #pdf_handler.set_next(prompt_handler).set_next(bedrock_handler)
+    elif input_type == "http":
+        chain = http_handler
+        current_handler = http_handler        
     elif input_type == "text_or_json":
         chain = local_file_handler
         current_handler = local_file_handler
-        # local_file_handler.set_next(prompt_handler).set_next(bedrock_handler)
     elif input_type == "s3":
         chain = s3reader_handler
-        current_handler = s3reader_handler.set_next(local_file_handler) #.set_next(prompt_handler).set_next(bedrock_handler)
+        current_handler = s3reader_handler.set_next(local_file_handler)
     else:
         # For unsupported types, default to just summarization_handler
         print("Unsupported file type.", input_type)
         sys.exit(1)
-        # chain = bedrock_handler    
+    
 
     # Anonymize data?
     anonymize = os.getenv('ANONYMIZE', 'false').lower() in ('true', '1', 't')
@@ -99,20 +104,13 @@ def main():
     handler_chain = construct_chain(input_type)
 
     # Process the input
-    request = {"type": input_type, "path": file_path, "prompt_file_name": prompt_file_name}
-    # request = {'type': 'multimedia_file', 'path': 's3://515232103838-transcribe/uploads/Amazon AppFlow flow chaining pattern  Amazon Web Services.mp3', 'processed': False}
+    request = {"type": input_type, "path": file_path, "prompt_file_name": prompt_file_name, "text":""}
     
     result = handler_chain.handle(request)
-    if (result.get("text")):
+    if (result.get("text", None)):
         print(result.get("text"))
     else:
         print(result)
-
-    # if result and result["processed"]:
-    #     print("\nProcessing completed successfully.")
-    #     print("Summary:", result.get("summary", "No summary available."))
-    # else:
-    #     print("\nProcessing failed or unsupported type.")
 
 if __name__ == "__main__":
     main()
