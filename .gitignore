@@ -1,2 +1,7 @@
 __pycache__
 .env
+downloads/transcription_1708531194.json
+prompts/default_prompt.txt prompts/marshal.txt prompts/minutes.txt
+.vscode
+prompts
+.DS_Store
