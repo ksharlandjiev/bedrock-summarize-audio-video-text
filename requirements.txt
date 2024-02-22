@@ -8,3 +8,5 @@ spacy
 pytube
 moviepy
 pdfminer.six
+bs4
+urllib

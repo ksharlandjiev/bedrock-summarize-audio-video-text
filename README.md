@@ -31,6 +31,7 @@ The processing chain is composed of several handlers, each dedicated to a partic
 - **SummarizationHandler**: Summarizes text content using Amazon Bedrock.
 - **AnonymizeHandler**: Configurable via .env - will use SpaCy library to anonymize customer names. 
 - **PromptHandler**: uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
+- **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags.
 
 Handlers are linked together in a chain, where each handler passes its output to the next handler in the sequence until the processing is complete.
 
