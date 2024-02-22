@@ -37,7 +37,7 @@ Handlers are linked together in a chain, where each handler passes its output to
 ### Customizing the Processing Chain
 You can customize the processing chain in main.py by setting the sequence of handlers according to your specific needs. Here is an example of how to construct a custom processing chain:
 ```python
-from handlers import YouTubeHandler, S3Handler, TranscriptionHandler, PDFHandler, SummarizationHandler
+from handlers import YouTubeHandler, S3WriterHandler, TranscriptionHandler, SummarizationHandler
 
 def construct_chain():
     youtube_handler = YouTubeHandler()
