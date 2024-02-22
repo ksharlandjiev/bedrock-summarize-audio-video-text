@@ -10,7 +10,7 @@ This project automates the transcription and summarization of audio, video, and 
 
 ## Architectural Overview
 
-The application employs the Chain of Responsibility design pattern to process inputs through a series of handlers. Each handler in the chain is responsible for a specific type of task, such as downloading YouTube videos, transcribing audio, summarizing text, or handling files from AWS S3. This pattern provides flexibility in processing and allows for easy customization of the processing pipeline.
+The application employs the Chain of Responsibility design pattern to process inputs through a series of handlers. Each handler in the chain is responsible for a specific type of task, such as downloading YouTube videos, transcribing audio, summarizing text, or handling files from local file system or Amazon S3. This pattern provides flexibility in processing and allows for easy customization of the processing pipeline.
 
 ### AWS Services Used
 
