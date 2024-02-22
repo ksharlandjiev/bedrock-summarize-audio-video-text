@@ -5,7 +5,8 @@ This project automates the transcription and summarization of audio, video, and 
 ## NOTICE
 
 - **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Transcribe, Amazon Bedrock, and Amazon S3 services. 
-** Please review AWS pricing details for each service used** 
+
+**Please review AWS pricing details for each service used** 
 
 ## Architectural Overview
 
