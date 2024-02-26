@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pytube import YouTube
 import moviepy.editor as mp
 
-class YouTubeHandler(AbstractHandler):
+class YouTubeReaderHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
         # Load environment variables from .env file
         load_dotenv()

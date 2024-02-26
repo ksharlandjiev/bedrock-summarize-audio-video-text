@@ -2,14 +2,22 @@ from typing import Any
 
 from handlers.abstract_handler import AbstractHandler
 
-class LocalFileHandler(AbstractHandler):
+class LocalFileWriterHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
-        print("Processing local file...")
-        file_path = request.get("path")
+        
+        file_path = request.get("write_file_path")
 
-        text = read_text_content(file_path)
+        print(f"Writing  to {file_path}")
+        write_file_path = request.get("write_file_path", None)
+        text = request.get("text", None)
 
-        request.update({"text": text})
+        try:
+          f = open(write_file_path, "a")
+          f.write(text)
+          f.close()
+          request.update({"status": True})
+        except: 
+            request.update({"status": False})        
 
         return super().handle(request)
     
