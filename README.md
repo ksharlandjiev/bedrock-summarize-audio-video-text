@@ -1,10 +1,10 @@
 # Amazon Bedrock Summarization Tool
 
-This project automates the transcription and summarization of audio, video, and text content using AWS services. By leveraging Amazon Transcribe for speech-to-text conversion and Amazon Bedrock for generating summaries using foundational GenAI models, the tool streamlines the analysis of multimedia and textual information. Additionally, it supports downloading content from YouTube for processing and can handle PDF text extraction.
+This project automates the transcription and summarization of audio, video, and text content using AWS services. By leveraging Amazon Transcribe for speech-to-text conversion, Amazon Textract for OCR of printed or handwritten text and Amazon Bedrock for generating summaries using foundational GenAI models, the tool streamlines the analysis of multimedia and textual information. Additionally, it supports text anonymization, and other handy features such as reading from HTTP(s) URL or PDF text extraction.
 
 ## NOTICE
 
-- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Transcribe, Amazon Bedrock, and Amazon S3 services. 
+- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Textract, Amazon Transcribe, Amazon Bedrock, and Amazon S3 services. 
 
 **Please review AWS pricing details for each service used** 
 
@@ -15,23 +15,33 @@ The application employs the Chain of Responsibility design pattern to process in
 ### AWS Services Used
 
 - **Amazon Transcribe**: Converts spoken words in audio or video files into text, producing accurate transcriptions.
+- **Amazon Textract**: Automatically extract printed text, handwriting, layout elements, and data from any document.
 - **Amazon Bedrock**: Employs advanced AI models to summarize text, making it easier to digest large volumes of information.
 - **Amazon S3**: Acts as a storage solution for the input files and the generated outputs, including transcripts and summaries.
 
 
 ### Chain of Responsibility Implementation
-The processing chain is composed of several handlers, each dedicated to a particular processing step:
+The processing chain is composed of several handlers, that are dedicated to a particular processing step and organized into 3 groups: readers, processors, writers:
 
-- **YouTubeHandler**: Downloads videos from YouTube URLs and extracts audio.
-- **S3WriterHandler**: Manages the uploading and downloading of files to and from Amazon S3.
-- **S3ReaderHandler**: Manages the uploading and downloading of files to and from Amazon S3.
-- **TranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
-- **PDFHandler**: Extracts text from PDF documents for summarization.
-- **LocalFileHandler**: Handles local audio, video, and text files for processing.
-- **SummarizationHandler**: Summarizes text content using Amazon Bedrock.
+Readers:
+- **LocalFileReaderHandler**: Handles local audio, video, and text files for processing.
+- **S3ReaderHandler**: Manages the reading and downloading of S3 objects (files) from Amazon S3.
+- **PDFReaderHandler**: Extracts text from PDF documents for summarization.
+= **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags. 
+- **YouTubeReaderHandler**: Downloads videos from YouTube URLs and extracts audio.
+
+Processors:
+- **AmazonBedrockHandler**: Summarizes text content using Amazon Bedrock.
+- **AmazonTranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
+- **AmazonTextractHandler**: Extracts text from images such as .jpg, .png, .tiff
 - **AnonymizeHandler**: Configurable via .env - will use SpaCy library to anonymize customer names. 
-- **PromptHandler**: uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
-- **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags.
+- **PromptHandler**: Uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
+
+Writers:
+- **S3WriterHandler**: Manages the uploading of of S3 objects (files) to Amazon S3.
+-**LocalFileWriterHandler**: Writes output into a local file.
+-**ClipboardWriterHandler**: Writes output into clipboard.
+
 
 Handlers are linked together in a chain, where each handler passes its output to the next handler in the sequence until the processing is complete.
 
@@ -41,16 +51,17 @@ You can customize the processing chain in main.py by setting the sequence of han
 from handlers import YouTubeHandler, S3WriterHandler, TranscriptionHandler, SummarizationHandler
 
 def construct_chain():
-    youtube_handler = YouTubeHandler()
-    s3writer_handler = S3WriterHandler()
-    transcription_handler = TranscriptionHandler()    
-    summarization_handler = SummarizationHandler()
+    youtube_handler = YouTubeReaderHandler()
+    amazon_s3_writer_handler = S3WriterHandler()
+    amazon_transcribe_handler = AmazonTranscriptionHandler()    
+    amazon_bedrock_handler = AmazonBedrockHandler()
     anonymize_handler = AnonymizeHandler()
+    prompt_handler = PromptHandler()
 
-    # Customize the chain of handlers
-    youtube_handler.set_next(s3writer_handler).set_next(transcription_handler).set_next(prompt_handler).set_next(bedrock_handler)
+    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
+    youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
 
-    request = {"type": input_type, "path": file_path, "prompt_file_name": prompt_file_name}
+    request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
     youtube_handler.handle(request)
 ```
 

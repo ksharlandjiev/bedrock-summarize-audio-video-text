@@ -13,7 +13,7 @@ BUCKET_NAME = os.getenv('BUCKET_NAME')
 S3_FOLDER = os.getenv('S3_FOLDER')
 OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 
-class S3WriterHandler(AbstractHandler):
+class AmazonS3WriterHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
       # Upload the file to S3
       file_path = request.get("path")

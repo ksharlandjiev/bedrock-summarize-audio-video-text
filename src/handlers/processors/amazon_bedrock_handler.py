@@ -6,7 +6,7 @@ from utils import bedrock
 
 from handlers.abstract_handler import AbstractHandler
 
-class BedrockHandler(AbstractHandler):
+class AmazonBedrockHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
         print("Summarizing text with Bedrock...")
         

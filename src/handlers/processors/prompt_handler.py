@@ -6,7 +6,7 @@ class PromptHandler(AbstractHandler):
         
     def handle(self, request: dict) -> dict:
         print("Constructing prompt...")
-        prompt = load_prompt(request.get("prompt_file_name", None), request.get("text", None))
+        prompt = load_prompt(request.get("prompt_file_name", "default_prompt"), request.get("text", None))
 
         request.update({"text": prompt})
         return super().handle(request)

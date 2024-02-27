@@ -5,15 +5,16 @@ from dotenv import load_dotenv
 from handlers.abstract_handler import AbstractHandler
 from handlers.handler import Handler
 from handlers.readers.youtube_reader_handler import YouTubeReaderHandler
-from handlers.processors.transcription_handler import TranscriptionHandler
+from handlers.processors.amazon_transcribe_handler import AmazonTranscriptionHandler
 from handlers.readers.pdf_reader_handler import PDFReaderHandler
 from handlers.readers.local_file_reader_handler import LocalFileReaderHandler
 from handlers.writers.local_file_writer_handler import LocalFileWriterHandler
 from handlers.processors.prompt_handler import PromptHandler
-from handlers.processors.bedrock_handler import BedrockHandler
-from handlers.readers.s3_reader_handler import S3ReaderHandler
-from handlers.writers.s3_writer_handler import S3WriterHandler
+from handlers.processors.amazon_bedrock_handler import AmazonBedrockHandler
+from handlers.readers.amazon_s3_reader_handler import AmazonS3ReaderHandler
+from handlers.writers.amazon_s3_writer_handler import AmazonS3WriterHandler
 from handlers.processors.anonymize_handler import AnonymizeHandler
+from handlers.processors.amazon_textract_handler import AmazonTextractHandler
 from handlers.writers.clipboard_writer_handler import ClipboardWriterHandler
 from handlers.readers.http_handler import HTTPHandler
 import utils
@@ -33,6 +34,8 @@ def determine_input_type(file_path):
         return "multimedia_file"
     elif file_path.endswith('.pdf'):
         return "pdf"
+    elif file_path.endswith(('.jpg', '.jpeg', '.png', '.tiff')):
+        return "image_file"    
     elif file_path.endswith(('.txt', '.json')):
         return "text_or_json"
     else:
@@ -41,16 +44,16 @@ def determine_input_type(file_path):
 def construct_chain(input_type):
     # Initialize handlers
     youtube_handler = YouTubeReaderHandler()
-    transcription_handler = TranscriptionHandler()
+    transcription_handler = AmazonTranscriptionHandler()
     pdf_handler = PDFReaderHandler()
     local_file_reader_handler = LocalFileReaderHandler()
     local_file_writer_handler = LocalFileWriterHandler()
     prompt_handler = PromptHandler()
-    bedrock_handler = BedrockHandler()
-    s3reader_handler = S3ReaderHandler()
-    s3writer_handler = S3WriterHandler()
+    bedrock_handler = AmazonBedrockHandler()
+    s3reader_handler = AmazonS3ReaderHandler()
+    s3writer_handler = AmazonS3WriterHandler()
     http_handler = HTTPHandler()
-    
+    textract_handler = AmazonTextractHandler()
 
     # Use if-elif-else to construct the appropriate chain. In Python 3.10 we could use match statement.
     if input_type == "youtube_url":
@@ -59,6 +62,9 @@ def construct_chain(input_type):
     elif input_type == "multimedia_file":
         chain = s3writer_handler
         current_handler = s3writer_handler.set_next(transcription_handler)
+    elif input_type == "image_file":
+        chain = local_file_reader_handler
+        current_handler = local_file_reader_handler.set_next(textract_handler)        
     elif input_type == "pdf":
         chain = pdf_handler
         current_handler = pdf_handler 
@@ -101,11 +107,27 @@ def construct_chain(input_type):
 
 def construct_custom_chain():
     # Get creative...
-    s3 = S3ReaderHandler()
-    local_writer = LocalFileWriterHandler()
+    youtube_handler = YouTubeReaderHandler()
+    amazon_transcribe_handler = AmazonTranscriptionHandler()
+    pdf_handler = PDFReaderHandler()
+    local_file_reader_handler = LocalFileReaderHandler()
+    local_file_writer_handler = LocalFileWriterHandler()
+    prompt_handler = PromptHandler()
+    amazon_bedrock_handler = AmazonBedrockHandler()
+    amazon_s3_writer_handler = AmazonS3WriterHandler()
+    amazon_s3_reader_handler = AmazonS3ReaderHandler()
+    
+    http_handler = HTTPHandler()
+    textract_handler = AmazonTextractHandler()
+    anonymize_handler = AnonymizeHandler()
 
-    chain = s3
-    s3.set_next(local_writer)#.set_next(prompt).set_next(bedroc)
+    chain = amazon_s3_writer_handler
+
+    amazon_s3_writer_handler.set_next(textract_handler).set_next(prompt_handler).set_next(amazon_bedrock_handler)
+    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
+    # youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+    # s3reader_handler.set_next(local_file_writer_handler)
+
     return chain
 
 def main():
@@ -126,8 +148,8 @@ def main():
 
     # Process the input
     request = {"type": input_type, "path": file_path, "prompt_file_name": prompt_file_name, "text":"", "write_file_path":"output.txt"}
+
     result = handler_chain.handle(request)
-    
     if (result.get("text", None)):
         print(result.get("text"))
     else:

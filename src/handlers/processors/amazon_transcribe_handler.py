@@ -14,7 +14,7 @@ BUCKET_NAME = os.getenv('BUCKET_NAME')
 S3_FOLDER = os.getenv('S3_FOLDER')
 OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 
-class TranscriptionHandler(AbstractHandler):
+class AmazonTranscriptionHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
 
         s3_file_path = request.get("path")
