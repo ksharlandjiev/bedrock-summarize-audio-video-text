@@ -4,8 +4,6 @@ from io import BytesIO
 from typing import Any
 from handlers.abstract_handler import AbstractHandler
 from dotenv import load_dotenv
-
-
 class AmazonS3ReaderHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
         # Extract the S3 object path from the request
@@ -29,7 +27,7 @@ class AmazonS3ReaderHandler(AbstractHandler):
         """
         s3_client = boto3.client('s3')
         s3_object = s3_client.get_object(Bucket=bucket_name, Key=s3_object)
-        file_content = s3_object['Body'].read()
+        file_content = s3_object['Body'].read().decode('utf-8')
         
         return file_content
 

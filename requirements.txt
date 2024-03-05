@@ -10,3 +10,4 @@ moviepy
 pdfminer.six
 bs4
 urllib
+jsonpath_ng

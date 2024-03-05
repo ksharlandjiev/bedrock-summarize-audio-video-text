@@ -16,8 +16,8 @@ class LocalFileWriterHandler(AbstractHandler):
           f.write(text)
           f.close()
           request.update({"status": True})
-        except: 
-            request.update({"status": False})        
+        except Exception as e: 
+            request.update({"status": False, "error": str(e)})        
 
         return super().handle(request)
     

@@ -10,7 +10,8 @@ This project automates the transcription and summarization of audio, video, and 
 
 ## Architectural Overview
 
-The application employs the Chain of Responsibility design pattern to process inputs through a series of handlers. Each handler in the chain is responsible for a specific type of task, such as downloading YouTube videos, transcribing audio, summarizing text, or handling files from local file system or Amazon S3. This pattern provides flexibility in processing and allows for easy customization of the processing pipeline.
+The application employs the Chain of Responsibility design pattern to process inputs through a series of handlers. Each handler in the chain is responsible for a specific type of task, such as downloading YouTube videos, transcribing audio, summarizing text, or handling files from local file system or Amazon S3. This pattern provides flexibility in processing and allows for easy customization of the processing pipeline. It has been enhanced with dynamic handler discovery using Factory pattern to automatically identify and instantiate handlers as needed, significantly simplifying the extension and customization of the processing pipeline.
+
 
 ### AWS Services Used
 
@@ -18,6 +19,7 @@ The application employs the Chain of Responsibility design pattern to process in
 - **Amazon Textract**: Automatically extract printed text, handwriting, layout elements, and data from any document.
 - **Amazon Bedrock**: Employs advanced AI models to summarize text, making it easier to digest large volumes of information.
 - **Amazon S3**: Acts as a storage solution for the input files and the generated outputs, including transcripts and summaries.
+- **Others** - Such as Quip for example.
 
 
 ### Chain of Responsibility Implementation
@@ -64,6 +66,9 @@ def construct_chain():
     request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
     youtube_handler.handle(request)
 ```
+
+With the introduction of dynamic handler discovery and command-line arguments, you can now easily customize or specify custom processing chains without altering the codebase. The CLI supports flags for using predefined or custom chains based on runtime arguments.
+
 
 ### Prompt Template System
 
@@ -115,16 +120,28 @@ ANONYMIZE_CUSTOMER_NAME_REPLACEMENT="[Customer]"
 
 Execute the `main.py` script, specifying the file path and an optional prompt template name:
 ```bash
-python src/main.py <path_to_file_or_youtube_url> [prompt_file_name]
+python src/main.py <path_to_file_or_url> [prompt_file_name] [--custom]
 ```
 
 - `<path_to_file_or_youtube_url>`: The path to your audio or video file.
 - `[prompt_file_name]`: Optional. The name of a custom prompt template (without the `.txt` extension). 
 Example: 
+
+* Processing an Audio File
 ```bash
-python src/main.py path/to/your/file.mp3 summarize_audio
+python src/main.py /path/to/file.mp3
 ```
-A prompt from `prompts/summarize_audio.txt` will be used.
+
+* Using a cutom prompt template, located in `prompts/my_custom_prompto.txt`
+```bash
+python src/main.py /path/to/file.pdf my_custom_prompt
+
+```
+* Executing with a custom processing chain:
+```bash
+python src/main.py /path/to/file.mp3 --custom
+
+```
 
 ## Acknowledgments
 
