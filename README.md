@@ -100,6 +100,7 @@ python -m spacy download en_core_web_sm
 3. **Add your AWS S3 configuration** to the `.env` file:
 
 ```bash
+# .env file
 # AWS Specific configuration
 BEDROCK_ASSUME_ROLE=None
 AWS_DEFAULT_REGION="us-east-1"
@@ -108,13 +109,40 @@ AWS_DEFAULT_REGION="us-east-1"
 BUCKET_NAME=your-s3-bucket-name
 S3_FOLDER=uploads/
 OUTPUT_FOLDER=transcriptions/
+
 # Amazon Bedrock Settings
-AMAZON_BEDROCK_MODEL_ID="anthropic.claude-v2"
+AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
+AMAZON_BEDROCK_MODEL_PROPS='{"max_tokens":4096, "anthropic_version": "bedrock-2023-05-31", "messages": [{"role": "user", "content": ""}]}'
+AMAZON_BEDROCK_PROMPT_TEMPLATE="{prompt_text}"
+AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.messages[0].content"
+AMAZON_BEDROCK_OUTPUT_JSONPATH="$.content[0].text"
+
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-v2"
+# AMAZON_BEDROCK_MODEL_PROPS='{"prompt": "", "max_tokens_to_sample":4096, "temperature":0.5, "top_k":250, "top_p":0.5, "stop_sequences":[] }'
+# AMAZON_BEDROCK_PROMPT_TEMPLATE="\n\nHuman:{prompt_text}\n\nAssistant:"
+# AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.prompt"
+# AMAZON_BEDROCK_OUTPUT_JSONPATH="$.completion"
+
+# AMAZON_BEDROCK_MODEL_ID="amazon.titan-text-express-v1"
+# AMAZON_BEDROCK_MODEL_PROPS='{"inputText": "", "textGenerationConfig":{ "maxTokenCount":4096, "stopSequences":[], "temperature":0, "topP":1 }}'
+# AMAZON_BEDROCK_PROMPT_TEMPLATE="\n{prompt_text}"
+# AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.inputText"
+# AMAZON_BEDROCK_OUTPUT_JSONPATH="$.results[0].outputText"
+
 # Copy output to clipboard
 CLIPBOARD_COPY=false
+
 # Use Anonymization
 ANONYMIZE=false
 ANONYMIZE_CUSTOMER_NAME_REPLACEMENT="[Customer]"
+
+# Local download folder
+DIR_STORAGE="downloads"
+
+# Used for integration with Quip
+QUIP_TOKEN="<your_personal_token>"
+QUIP_ENDPOINT="https://platform.quip.com"
+QUIP_DEFAULT_FOLDER_ID=<default_folder_for_writing>
 ```
 ### Usage
 
