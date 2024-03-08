@@ -96,8 +96,10 @@ pip install -r requirements.txt
 ```bash
 python -m spacy download en_core_web_sm
 ```
-2. **Create a `.env` file** at the root of your project directory.
-3. **Add your AWS S3 configuration** to the `.env` file:
+2. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
+
+3. **Create a `.env` file** at the root of your project directory.
+4. **Add your AWS S3 configuration** to the `.env` file:
 
 ```bash
 # .env file
