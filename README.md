@@ -1,4 +1,4 @@
-# Amazon Bedrock Summarization Tool
+# Amazon Bedrock Chat & Summarization Tool
 
 This project automates the transcription and summarization of audio, video, and text content using AWS services. By leveraging Amazon Transcribe for speech-to-text conversion, Amazon Textract for OCR of printed or handwritten text and Amazon Bedrock for generating summaries using foundational GenAI models, the tool streamlines the analysis of multimedia and textual information. Additionally, it supports text anonymization, and other handy features such as reading from HTTP(s) URL or PDF text extraction.
 
@@ -50,15 +50,15 @@ Handlers are linked together in a chain, where each handler passes its output to
 ### Customizing the Processing Chain
 You can customize the processing chain in main.py by setting the sequence of handlers according to your specific needs. Here is an example of how to construct a custom processing chain:
 ```python
-from handlers import YouTubeHandler, S3WriterHandler, TranscriptionHandler, SummarizationHandler
+from handlers.handler_factory import HandlerFactory
 
 def construct_chain():
-    youtube_handler = YouTubeReaderHandler()
-    amazon_s3_writer_handler = S3WriterHandler()
-    amazon_transcribe_handler = AmazonTranscriptionHandler()    
-    amazon_bedrock_handler = AmazonBedrockHandler()
-    anonymize_handler = AnonymizeHandler()
-    prompt_handler = PromptHandler()
+    youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
+    amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
+    amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
+    amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
+    anonymize_handler =  HandlerFactory.get_handler("AnonymizeHandler")
+    prompt_handler =  HandlerFactory.get_handler("PromptHandler")
 
     # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
     youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
@@ -68,6 +68,8 @@ def construct_chain():
 ```
 
 With the introduction of dynamic handler discovery and command-line arguments, you can now easily customize or specify custom processing chains without altering the codebase. The CLI supports flags for using predefined or custom chains based on runtime arguments.
+
+
 
 
 ### Prompt Template System
@@ -96,10 +98,13 @@ pip install -r requirements.txt
 ```bash
 python -m spacy download en_core_web_sm
 ```
-2. **Create a `.env` file** at the root of your project directory.
-3. **Add your AWS S3 configuration** to the `.env` file:
+2. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
+
+3. **Create a `.env` file** at the root of your project directory.
+4. **Add your AWS S3 configuration** to the `.env` file:
 
 ```bash
+# .env file
 # AWS Specific configuration
 BEDROCK_ASSUME_ROLE=None
 AWS_DEFAULT_REGION="us-east-1"
@@ -108,25 +113,54 @@ AWS_DEFAULT_REGION="us-east-1"
 BUCKET_NAME=your-s3-bucket-name
 S3_FOLDER=uploads/
 OUTPUT_FOLDER=transcriptions/
+
 # Amazon Bedrock Settings
-AMAZON_BEDROCK_MODEL_ID="anthropic.claude-v2"
+AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
+AMAZON_BEDROCK_MODEL_PROPS='{"max_tokens":4096, "anthropic_version": "bedrock-2023-05-31", "messages": [{"role": "user", "content": ""}]}'
+AMAZON_BEDROCK_PROMPT_TEMPLATE="{prompt_text}"
+AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.messages[0].content"
+AMAZON_BEDROCK_OUTPUT_JSONPATH="$.content[0].text"
+
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-v2"
+# AMAZON_BEDROCK_MODEL_PROPS='{"prompt": "", "max_tokens_to_sample":4096, "temperature":0.5, "top_k":250, "top_p":0.5, "stop_sequences":[] }'
+# AMAZON_BEDROCK_PROMPT_TEMPLATE="\n\nHuman:{prompt_text}\n\nAssistant:"
+# AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.prompt"
+# AMAZON_BEDROCK_OUTPUT_JSONPATH="$.completion"
+
+# AMAZON_BEDROCK_MODEL_ID="amazon.titan-text-express-v1"
+# AMAZON_BEDROCK_MODEL_PROPS='{"inputText": "", "textGenerationConfig":{ "maxTokenCount":4096, "stopSequences":[], "temperature":0, "topP":1 }}'
+# AMAZON_BEDROCK_PROMPT_TEMPLATE="\n{prompt_text}"
+# AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.inputText"
+# AMAZON_BEDROCK_OUTPUT_JSONPATH="$.results[0].outputText"
+
 # Copy output to clipboard
 CLIPBOARD_COPY=false
-# Use Anonymization
-ANONYMIZE=false
+
+# For Anonymization
 ANONYMIZE_CUSTOMER_NAME_REPLACEMENT="[Customer]"
+
+# Local download folder
+DIR_STORAGE="downloads"
+
+# Used for integration with Quip
+QUIP_TOKEN="<your_personal_token>"
+QUIP_ENDPOINT="https://platform.quip.com"
+QUIP_DEFAULT_FOLDER_ID=<default_folder_for_writing>
 ```
 ### Usage
 
 Execute the `main.py` script, specifying the file path and an optional prompt template name:
 ```bash
-python src/main.py <path_to_file_or_url> [prompt_file_name] [--custom]
+python src/main.py <path_to_file_or_url> [prompt_file_name] [--chat {sum_first,chat_first,chat_only}] [--anonymize {yes}] [--custom] 
 ```
 
 - `<path_to_file_or_youtube_url>`: The path to your audio or video file.
 - `[prompt_file_name]`: Optional. The name of a custom prompt template (without the `.txt` extension). 
-Example: 
+- `--chat`: Enable interactive chat option. You can choose if you want to have a chat before or after summarization task, or chat only.
+- `--anonymize`: way to turn off anonymization. Currently this is enabled by default. 
+- `--custom`: Allows you to execute a custom chain, defined in src/main.py: construct_custom_chain()
 
+Example: 
 * Processing an Audio File
 ```bash
 python src/main.py /path/to/file.mp3
@@ -142,10 +176,14 @@ python src/main.py /path/to/file.pdf my_custom_prompt
 python src/main.py /path/to/file.mp3 --custom
 
 ```
+* Have a conversation with the LLM about your document
+```bash
+python src/main.py /path/to/local/file.pdf --chat=chat_only
+```
 
 ## Acknowledgments
 
-This project utilizes utility tooling from the **Amazon Bedrock Workshop**, provided by AWS Samples. The workshop offers a comprehensive guide and tools for integrating Amazon Bedrock into applications, which have been instrumental in developing the summarization functionalities of this project. For more information and access to these resources, visit the [Amazon Bedrock Workshop on GitHub](https://github.com/aws-samples/amazon-bedrock-workshop).
+This project takes inspiration from the **Amazon Bedrock Workshop**, provided by AWS Samples. The workshop offers a comprehensive guide and tools for integrating Amazon Bedrock into applications, which have been instrumental in developing the summarization functionalities of this project. For more information and access to these resources, visit the [Amazon Bedrock Workshop on GitHub](https://github.com/aws-samples/amazon-bedrock-workshop).
 
 ## NOTICE
 

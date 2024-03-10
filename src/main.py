@@ -24,6 +24,10 @@ def determine_input_type(file_path):
         return "multimedia_file"
     elif file_path.endswith('.pdf'):
         return "pdf"
+    elif file_path.endswith('.docx'):
+        return "microsoft_word"
+    elif file_path.endswith(('.xlsx','.xlsm','.xltx','.xltm')):
+        return "microsoft_excel"
     elif file_path.endswith(('.jpg', '.jpeg', '.png', '.tiff')):
         return "image_file"    
     elif file_path.endswith(('.txt', '.json')):
@@ -31,7 +35,7 @@ def determine_input_type(file_path):
     else:
         return "unsupported"
 
-def construct_chain(input_type):
+def construct_chain(input_type, args):
 
     # Use if-elif-else to construct the appropriate chain. In Python 3.10 we could use match statement.
     if input_type == "youtube_url":
@@ -63,6 +67,7 @@ def construct_chain(input_type):
     elif input_type == "http":
         http_handler = HandlerFactory.get_handler("HTTPHandler")
         http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
 
         chain = http_handler
         current_handler = http_handler.set_next(http_clean_handler).set_next(local_file_writer_handler)
@@ -83,6 +88,10 @@ def construct_chain(input_type):
 
         chain = quip_reader_handler
         current_handler = quip_reader_handler.set_next(http_clean_handler)
+    elif input_type == "microsoft_word":
+        chain = current_handler = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
+    elif input_type == "microsoft_excel":
+        chain = current_handler = HandlerFactory.get_handler("MicrosoftExcelReaderHandler")
 
     elif input_type == "custom":
         return construct_custom_chain() # for testing only
@@ -93,7 +102,7 @@ def construct_chain(input_type):
         sys.exit(1)
     
     # Anonymize data?
-    anonymize = os.getenv('ANONYMIZE', 'false').lower() in ('true', '1', 't')
+    anonymize = args.anonymize in (True, 'true', '1')
     if anonymize: 
         anonymize_handler = HandlerFactory.get_handler("AnonymizeHandler")
         current_handler = current_handler.set_next(anonymize_handler)
@@ -101,7 +110,21 @@ def construct_chain(input_type):
     # Add the prompt and bedrock handlers.
     prompt_handler = HandlerFactory.get_handler("PromptHandler")
     bedrock_handler = HandlerFactory.get_handler("AmazonBedrockHandler")    
-    current_handler = current_handler.set_next(prompt_handler).set_next(bedrock_handler)
+    
+    
+    # Determinate when / if we need to call summarization or Chat and in what order.
+    if args.chat and args.chat != None: 
+        chat_handler = HandlerFactory.get_handler("AmazonBedrockChatHandler")
+        if args.chat == 'sum_first':
+            current_handler = current_handler.set_next(prompt_handler)
+            current_handler.set_next(bedrock_handler).set_next(chat_handler)
+        elif args.chat == 'chat_only': 
+            current_handler.set_next(chat_handler)
+        else: 
+            current_handler = current_handler.set_next(chat_handler)
+            current_handler = current_handler.set_next(prompt_handler).set_next(bedrock_handler)
+    else: 
+        current_handler = current_handler.set_next(prompt_handler).set_next(bedrock_handler)
 
     # Copy to clipboard?
     clipboard = os.getenv('CLIPBOARD_COPY', 'false').lower() in ('true', '1', 't')
@@ -116,16 +139,32 @@ def construct_custom_chain():
     # Get creative...
     youtube_handler = HandlerFactory.get_handler("YouTubeReaderHandler")
     amazon_transcribe_handler = HandlerFactory.get_handler("AmazonTranscriptionHandler")
+    pdf_handler = HandlerFactory.get_handler("PDFReaderHandler")
+    local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
+    local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
     prompt_handler = HandlerFactory.get_handler("PromptHandler")
     amazon_bedrock_handler = HandlerFactory.get_handler("AmazonBedrockHandler")
     amazon_s3_writer_handler = HandlerFactory.get_handler("AmazonS3WriterHandler")
+    amazon_s3_reader_handler = HandlerFactory.get_handler("AmazonS3ReaderHandler")
+    http_handler = HandlerFactory.get_handler("HTTPHandler")
+    textract_handler = HandlerFactory.get_handler("AmazonTextractHandler")
     anonymize_handler = HandlerFactory.get_handler("AnonymizeHandler")
+    quip_reader_handler = HandlerFactory.get_handler("QuipReaderHandler")
+    quip_writer_handler = HandlerFactory.get_handler("QuipWriterHandler")
+    http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
+    ms = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
+    chat = HandlerFactory.get_handler("AmazonBedrockChatHandler")
 
+    chain = local_file_reader_handler
+    local_file_reader_handler.set_next(chat)
     
-   
+
+    # local_file_reader_handler.set_.set_next(local_file_writer_handler)
+    # amazon_s3_writer_handler.set_next(amazon_transcribe_handler)#.set_next(prompt_handler).set_next(amazon_bedrock_handler)
+
     # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
-    chain = youtube_handler
-    youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+    # youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+    # s3reader_handler.set_next(local_file_writer_handler)
 
     return chain
 
@@ -138,6 +177,12 @@ def main():
 
     # Optional positional argument for the prompt file name, with a default value
     parser.add_argument('prompt_file_name', nargs='?', default='default_prompt', help='The name of the prompt file. Defaults to "default_prompt" if not specified.')
+
+    # Optional flag to specify the use of a interactive chat handler
+    parser.add_argument("--chat", type=str, default=None, choices=[None, 'sum_first', 'chat_first', 'chat_only'],  help="Choose 'sum_first', 'chat_first' to summarize before chat or direct chat interaction with your original text. Select 'chat_only' if you only want to query your original text")
+
+    # Optional flag to turn off anonymization
+    parser.add_argument("--anonymize", type=str, default=True, help="Anonymize customer names before sending to the model. By default this is set to true.")
 
     # Optional flag to specify the use of a custom chain
     parser.add_argument('--custom', action='store_true', help='Flag to use a custom processing chain instead of the default based on file type.')
@@ -155,7 +200,7 @@ def main():
         input_type = determine_input_type(args.file_path)
 
     # Construct the appropriate processing chain
-    handler_chain = construct_chain(input_type)
+    handler_chain = construct_chain(input_type, args)
 
     # Prepare the output filename with the current date and time
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

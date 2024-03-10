@@ -1,13 +1,12 @@
 boto3
 python-dotenv
 pyperclip
-json
-sys
-os
 spacy
 pytube
 moviepy
 pdfminer.six
 bs4
-urllib
 jsonpath_ng
+python-docx
+openpyxl
+python-ffmpeg
