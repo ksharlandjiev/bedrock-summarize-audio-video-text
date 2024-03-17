@@ -1,0 +1,33 @@
+Create 5 DataZone business glossaries with at least 3 terms eac based on the input text in <text></text> tag.
+Use the below python script as a template but add terms based on the actual input text.
+Ensure the output is a valid JSON as the example. 
+Return only the the glossary output json. DO not add any explanatory text before or after the JSON. 
+<text>
+  {input_text}
+</text>
+
+<template>
+# Define multiple glossaries with their terms
+{{
+  "Retail Business Glossary": [
+    {{"name": "Customer", "shortDescription": "An individual or entity that purchases goods or services from a business."}},
+    {{"name": "Product", "shortDescription": "A tangible item or service offered for sale by a business."}}
+  ],
+  "Technology Business Glossary": [
+    {{"name": "Cloud Computing", "shortDescription": "The delivery of computing services over the internet."}},
+    {{"name": "Big Data", "shortDescription": "Large and complex data sets that traditional data processing software cannot deal with adequately."}}
+  ],
+  "Finance Business Glossary": [
+    {{"name": "Asset", "shortDescription": "Any resource owned by a business that has economic value."}},
+    {{"name": "Equity", "shortDescription": "The value of an owner\"s shares in a company."}}
+  ],
+  "Healthcare Business Glossary": [
+    {{"name": "HIPAA", "shortDescription": "A US law designed to provide privacy standards to protect patients\" medical records."}},
+    {{"name": "Outpatient", "shortDescription": "A patient who receives medical treatment without being admitted to a hospital."}}
+  ],
+  "Marketing Business Glossary": [
+    {{"name": "Brand Awareness", "shortDescription": "The extent to which consumers are familiar with the qualities or image of a particular brand of goods or services."}},
+    {{"name": "SEO", "shortDescription": "The practice of increasing the quantity and quality of traffic to your website through organic search engine results."}},
+  ]
+}}
+</template>

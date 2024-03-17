@@ -1,10 +1,10 @@
 # Amazon Bedrock Chat & Summarization Tool
 
-This project automates the transcription and summarization of audio, video, and text content using AWS services. By leveraging Amazon Transcribe for speech-to-text conversion, Amazon Textract for OCR of printed or handwritten text and Amazon Bedrock for generating summaries using foundational GenAI models, the tool streamlines the analysis of multimedia and textual information. Additionally, it supports text anonymization, and other handy features such as reading from HTTP(s) URL or PDF text extraction.
+This project automates the transcription, enrichment and summarization of audio, video, and text content using AWS Storage and AI/ML services. By leveraging Amazon Transcribe for speech-to-text conversion, Amazon Textract for OCR of printed or handwritten text, Amazon Comprehend for Natural language processing and PII detection and Amazon Bedrock for generating summaries using foundational GenAI models, this tool streamlines the analysis of multimedia and textual information. Additionally, it supports text anonymization, and other handy features such as reading from HTTP(s) URL or PDF, MS Word, MS Excel text extraction.
 
 ## NOTICE
 
-- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon S3, and other AWS services this project may use in the future. 
+- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon Comprehend, Amazon S3, and other AWS services this project may use in the future. 
 
 **Please review AWS pricing details for each service used** 
 
@@ -15,11 +15,12 @@ The application employs the Chain of Responsibility design pattern to process in
 
 ### AWS Services Used
 
+- **Amazon Bedrock**: Employs advanced AI models to summarize text, making it easier to digest large volumes of information.
 - **Amazon Transcribe**: Converts spoken words in audio or video files into text, producing accurate transcriptions.
 - **Amazon Textract**: Automatically extract printed text, handwriting, layout elements, and data from any document.
-- **Amazon Bedrock**: Employs advanced AI models to summarize text, making it easier to digest large volumes of information.
+- **Amazon Comprehend**: Detects PII data. We use this by default to detect and tokenize any PII data before sending to Amazon Bedrock. When we get the summary back, we untokenize the data to get the PII back. 
 - **Amazon S3**: Acts as a storage solution for the input files and the generated outputs, including transcripts and summaries.
-- **Others** - Such as Quip for example.
+- **Others** - Such as Quip, Amazon Datazone etc.
 
 
 ### Chain of Responsibility Implementation
@@ -29,19 +30,29 @@ Readers:
 - **LocalFileReaderHandler**: Handles local audio, video, and text files for processing.
 - **S3ReaderHandler**: Manages the reading and downloading of S3 objects (files) from Amazon S3.
 - **PDFReaderHandler**: Extracts text from PDF documents for summarization.
-= **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags. 
+- **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags. 
 - **YouTubeReaderHandler**: Downloads videos from YouTube URLs and extracts audio.
+- **MicrosoftExcelReaderHandler**: Extract text form .docx 
+- **MicrosoftWordReaderHandler**: Extract thext from .xlsx and other file formats
+- **QuipReaderHandler**: Extract text from Quip.
+
 
 Processors:
-- **AmazonBedrockHandler**: Summarizes text content using Amazon Bedrock.
+- **PromptHandler**: Uses a minimalistic prompt framework to construct prompts. All your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
+- **AmazonBedrockHandler**: Amazon Bedrock interface for signle tasks (request-response) 
+- **AmazonBedrockChatHandler**: Amazon Bedrock interactive chat interface - allows you to interract with the model based on your text. 
 - **AmazonTranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
 - **AmazonTextractHandler**: Extracts text from images such as .jpg, .png, .tiff
-- **AnonymizeHandler**: Configurable via .env - will use SpaCy library to anonymize customer names. 
-- **PromptHandler**: Uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
+- **AnonymizeHandler**: Uses local NLP via SpaCy library to anonymize customer names. You can also use AmazonComprehend handlers for this task.
+- **AmazonComprehendPIITokenizeHandler**: Uses Amazon Comprehend detect PII to detect and obfuscate PII. It uses a local map that stores PII and the token used to obfuscate.
+- **AmazonComprehendPIIUntokenizeHandler**: Used after you use AmazonComprehendPIITokenizeHandler. It will use the local map to restore PII. 
+- **HTMLCleanerHandler**: Simple handler to remove any HTML tags - often used when consuming data from HTTP or Quip endpoint.
+
 
 Writers:
 - **S3WriterHandler**: Manages the uploading of of S3 objects (files) to Amazon S3.
 -**LocalFileWriterHandler**: Writes output into a local file.
+-**AmazonDataZoneGlossaryWriterHandler**: Can be used to write Glossaries into Amazon Data Zone. The input needs to be in specific JSON format. Refer to prompts/glossary.txt prompt.
 -**ClipboardWriterHandler**: Writes output into clipboard.
 
 
@@ -63,13 +74,11 @@ def construct_chain():
     # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
     youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
 
-    request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
+    request = { "path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt", "text": "" }
     youtube_handler.handle(request)
 ```
 
 With the introduction of dynamic handler discovery and command-line arguments, you can now easily customize or specify custom processing chains without altering the codebase. The CLI supports flags for using predefined or custom chains based on runtime arguments.
-
-
 
 
 ### Prompt Template System
@@ -145,7 +154,7 @@ DIR_STORAGE="downloads"
 # Used for integration with Quip
 QUIP_TOKEN="<your_personal_token>"
 QUIP_ENDPOINT="https://platform.quip.com"
-QUIP_DEFAULT_FOLDER_ID=<default_folder_for_writing>
+QUIP_DEFAULT_FOLDER_ID="<default_folder_for_writing>"
 ```
 ### Usage
 
@@ -157,18 +166,18 @@ python src/main.py <path_to_file_or_url> [prompt_file_name] [--chat {sum_first,c
 - `<path_to_file_or_youtube_url>`: The path to your audio or video file.
 - `[prompt_file_name]`: Optional. The name of a custom prompt template (without the `.txt` extension). 
 - `--chat`: Enable interactive chat option. You can choose if you want to have a chat before or after summarization task, or chat only.
-- `--anonymize`: way to turn off anonymization. Currently this is enabled by default. 
+- `--anonymize`: way to turn off anonymization. Currently anonimization is enabled by default to prevent sensitive information to be leaked. This is using Comprehend PII and it may miss some PII data. 
 - `--custom`: Allows you to execute a custom chain, defined in src/main.py: construct_custom_chain()
 
 Example: 
-* Processing an Audio File
+* Processing an Audio File with default prompt
 ```bash
 python src/main.py /path/to/file.mp3
 ```
 
-* Using a cutom prompt template, located in `prompts/my_custom_prompto.txt`
+* Using a cutom prompt template, located in `prompts/glossary.txt`
 ```bash
-python src/main.py /path/to/file.pdf my_custom_prompt
+python src/main.py /path/to/file.pdf glossary
 
 ```
 * Executing with a custom processing chain:
@@ -188,7 +197,7 @@ This project takes inspiration from the **Amazon Bedrock Workshop**, provided by
 ## NOTICE
 
 - **AWS CLI Installation**: Ensure the AWS CLI is installed and configured with your AWS credentials.
-- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon S3, and other AWS services this project may use in the future. 
+- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon Comprehend, Amazon S3, and other AWS services this project may use in the future. 
 ** Please review AWS pricing details for each service used** 
 - **Use at Your Own Risk**: The author assumes no liability for any charges or consequences arising from the use of this tool.
 
