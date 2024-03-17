@@ -1,7 +1,7 @@
 from pdfminer.high_level import extract_text
 from handlers.abstract_handler import AbstractHandler
-
 class PDFReaderHandler(AbstractHandler):
+    
     def handle(self, request: dict) -> dict:
         print("Processing PDF file...")
 

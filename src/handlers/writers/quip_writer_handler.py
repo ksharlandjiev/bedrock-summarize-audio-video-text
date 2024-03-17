@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 import os
 import urllib.request
 import urllib.parse
@@ -7,10 +6,6 @@ from urllib.error import HTTPError, URLError
 
 
 from handlers.abstract_handler import AbstractHandler
-
-# Load environment variables from .env file
-load_dotenv()
-
 class QuipWriterHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
         print(f"Writing  to Quip...")
@@ -42,30 +37,28 @@ class QuipWriterHandler(AbstractHandler):
 
         headers = {'Authorization': f'Bearer {quip_token}'}
 
-        
         data = {
             'format': 'html',
             'type': 'document',
-            'title': 'test123',
-            'content': "<h1>Hello World</h1><br/><b>This is test</b>",
+            'content': content,
             'member_ids': folder_id
         }
 
         if document_id:
             # Update existing document
             url = f"{quip_endpoint}/1/threads/{document_id}"
-            request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
+            url_request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
         else:
             # Create new document in specified folder
             url = f"{quip_endpoint}/1/threads/new-document"
             
             data['folder_id'] = folder_id
-            request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')        
-        print(request)
-        request.add_header("Content-Type","application/x-www-form-urlencoded")
+            url_request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')        
+
+        
         try:
-            with urllib.request.urlopen(request) as response:
-                print(response)
+            url_request.add_header("Content-Type","application/x-www-form-urlencoded")
+            with urllib.request.urlopen(url_request) as response:
                 response_body = response.read()
                 return json.loads(response_body)
         except HTTPError as e:
@@ -105,10 +98,10 @@ class QuipWriterHandler(AbstractHandler):
             # Create new document
             url = f"{quip_endpoint}/1/threads/new-document"
             encoded_data = urllib.parse.urlencode(data).encode('utf-8')
-            request = urllib.request.Request(url, data=encoded_data, headers=headers)
+            url_request = urllib.request.Request(url, data=encoded_data, headers=headers)
 
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(url_request) as response:
                 response_body = response.read()
                 return json.loads(response_body)
         except HTTPError as e:

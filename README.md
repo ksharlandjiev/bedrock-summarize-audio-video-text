@@ -4,7 +4,7 @@ This project automates the transcription and summarization of audio, video, and 
 
 ## NOTICE
 
-- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Textract, Amazon Transcribe, Amazon Bedrock, and Amazon S3 services. 
+- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon S3, and other AWS services this project may use in the future. 
 
 **Please review AWS pricing details for each service used** 
 
@@ -188,7 +188,7 @@ This project takes inspiration from the **Amazon Bedrock Workshop**, provided by
 ## NOTICE
 
 - **AWS CLI Installation**: Ensure the AWS CLI is installed and configured with your AWS credentials.
-- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Transcribe, Amazon Bedrock, and Amazon S3 services. 
+- **Demonstration Purposes**: This code is intended for **demonstration purposes ONLY**. It will incur AWS charges based on the usage of Amazon Bedrock, Amazon Textract, Amazon Transcribe, Amazon S3, and other AWS services this project may use in the future. 
 ** Please review AWS pricing details for each service used** 
 - **Use at Your Own Risk**: The author assumes no liability for any charges or consequences arising from the use of this tool.
 
@@ -199,7 +199,3 @@ Contributions are welcome! Please feel free to fork the repository, make changes
 ## License
 
 This project is released under the MIT License.
-
-
-
-

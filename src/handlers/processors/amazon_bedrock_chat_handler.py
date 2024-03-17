@@ -3,11 +3,13 @@ from handlers.abstract_handler import AbstractHandler
 from utils.bedrock import invoke_model
 import json
 
-
 class AmazonBedrockChatHandler(AbstractHandler):
+    
     def handle(self, request: dict) -> dict:
         
-        print(f"Hello, I'm the chat hanlder.\nHere's the text you have so far: \n\n {request['text']}")      
+        print(f"Hello, I'm the Amazon Bedrock chat hanlder buddy.\n")
+        
+        print(request.get("text"))      
         print(f"\n\n------\nYou can ask any questions on the text above. To terminate the chat session, use Ctrl+C")
         
         chat_history = []

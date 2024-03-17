@@ -1,8 +1,13 @@
-"""Helper utilities for working with Amazon Bedrock"""
-import boto3
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+# Python Built-Ins:
 import json
 import os
 from jsonpath_ng import jsonpath, parse
+
+# External Dependencies:
+import boto3
 
 def invoke_model(prompt_text, modelId=os.environ.get("AMAZON_BEDROCK_MODEL_ID", 'anthropic.claude-v2')):
     """

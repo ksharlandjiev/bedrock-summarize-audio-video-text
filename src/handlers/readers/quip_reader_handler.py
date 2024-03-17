@@ -1,17 +1,12 @@
-from dotenv import load_dotenv
 import os
 from handlers.abstract_handler import AbstractHandler
 
-import os
 import urllib.request
 import json
 from urllib.error import HTTPError, URLError
 from utils.web_utils import clean_html
 
 
-
-# Load environment variables from .env file
-load_dotenv()
 
 class QuipReaderHandler(AbstractHandler):
     
@@ -42,15 +37,15 @@ class QuipReaderHandler(AbstractHandler):
             raise ValueError("Invalid Quip path format")
 
     def get_document(self, document_id):
-        # Assuming your Quip API token is stored in an environment variable named QUIP_TOKEN
+        
         quip_token = os.getenv('QUIP_TOKEN')
-        quip_endpoint = os.getenv('QUIP_ENDPOINT', 'https://platform.quip.com/')
+        quip_endpoint = os.getenv('QUIP_ENDPOINT', 'https://platform.quip.com')
         if not quip_token:
             raise ValueError("QUIP_TOKEN environment variable is not set.")
 
         # Construct the URL for the document content endpoint
-        url = f"https://{quip_endpoint}/1/threads/{document_id}"
-
+        url = f"{quip_endpoint}/1/threads/{document_id}"
+        
         # Set up the headers with authorization
         headers = {
             'Authorization': f'Bearer {quip_token}'
@@ -72,4 +67,4 @@ class QuipReaderHandler(AbstractHandler):
             raise Exception(f"HTTP Error encountered: {e.code} - {e.reason}")
         except URLError as e:
             # Handle URL errors (e.g., network issues)
-            raise Exception(f"URL Error encountered: {e.reason}")
+            raise Exception(f"URL Error encountered: {e}")

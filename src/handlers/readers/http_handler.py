@@ -1,8 +1,7 @@
 from handlers.abstract_handler import AbstractHandler
 from utils.web_utils import fetch_webpage
-
-
 class HTTPHandler(AbstractHandler):
+
     def handle(self, request: dict) -> dict:
         url = request.get("path", None);
         print("Fetching data from web page: ",url)

@@ -2,7 +2,6 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any
 from handlers.handler import Handler
-
 class AbstractHandler(Handler):
     """
     The default chaining behavior can be implemented inside a base handler

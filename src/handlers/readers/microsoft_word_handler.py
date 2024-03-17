@@ -2,6 +2,7 @@ from docx import Document
 from handlers.abstract_handler import AbstractHandler
 
 class MicrosoftWordReaderHandler(AbstractHandler):
+    
     def handle(self, request: dict) -> dict:
         print("Processing DOCX file...")
 

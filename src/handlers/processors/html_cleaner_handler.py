@@ -1,8 +1,6 @@
 import os
 from utils.web_utils import clean_html
 from handlers.abstract_handler import AbstractHandler
-
-
 class HTMLCleanerHandler(AbstractHandler):
         
     def handle(self, request: dict) -> dict:

@@ -33,7 +33,8 @@ def determine_input_type(file_path):
     elif file_path.endswith(('.txt', '.json')):
         return "text_or_json"
     else:
-        return "unsupported"
+        # Assume text
+        return "text_or_json"
 
 def construct_chain(input_type, args):
 
@@ -78,10 +79,9 @@ def construct_chain(input_type, args):
         current_handler = local_file_reader_handler
     elif input_type == "s3":
         s3reader_handler = HandlerFactory.get_handler("AmazonS3ReaderHandler")
-        local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
+        # local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
+        current_handler = chain = s3reader_handler        
 
-        chain = s3reader_handler
-        current_handler = s3reader_handler.set_next(local_file_reader_handler)
     elif input_type == "quip":
         quip_reader_handler = HandlerFactory.get_handler("QuipReaderHandler")
         http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
@@ -104,27 +104,34 @@ def construct_chain(input_type, args):
     # Anonymize data?
     anonymize = args.anonymize in (True, 'true', '1')
     if anonymize: 
-        anonymize_handler = HandlerFactory.get_handler("AnonymizeHandler")
+        anonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIITokenizeHandler")
         current_handler = current_handler.set_next(anonymize_handler)
 
     # Add the prompt and bedrock handlers.
     prompt_handler = HandlerFactory.get_handler("PromptHandler")
     bedrock_handler = HandlerFactory.get_handler("AmazonBedrockHandler")    
-    
-    
+        
     # Determinate when / if we need to call summarization or Chat and in what order.
+    
     if args.chat and args.chat != None: 
         chat_handler = HandlerFactory.get_handler("AmazonBedrockChatHandler")
+        print("Enable chat", args)
         if args.chat == 'sum_first':
             current_handler = current_handler.set_next(prompt_handler)
             current_handler.set_next(bedrock_handler).set_next(chat_handler)
         elif args.chat == 'chat_only': 
-            current_handler.set_next(chat_handler)
+            current_handler = current_handler.set_next(chat_handler)
+            
         else: 
             current_handler = current_handler.set_next(chat_handler)
             current_handler = current_handler.set_next(prompt_handler).set_next(bedrock_handler)
     else: 
         current_handler = current_handler.set_next(prompt_handler).set_next(bedrock_handler)
+    
+    # Finally, if we have tokenized the content, let's untokenize
+    if anonymize:
+        unanonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIIUntokenizeHandler")
+        current_handler = current_handler.set_next(unanonymize_handler)
 
     # Copy to clipboard?
     clipboard = os.getenv('CLIPBOARD_COPY', 'false').lower() in ('true', '1', 't')
@@ -137,39 +144,16 @@ def construct_chain(input_type, args):
 
 def construct_custom_chain():
     # Get creative...
-    youtube_handler = HandlerFactory.get_handler("YouTubeReaderHandler")
-    amazon_transcribe_handler = HandlerFactory.get_handler("AmazonTranscriptionHandler")
     pdf_handler = HandlerFactory.get_handler("PDFReaderHandler")
-    local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
-    local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
-    prompt_handler = HandlerFactory.get_handler("PromptHandler")
-    amazon_bedrock_handler = HandlerFactory.get_handler("AmazonBedrockHandler")
-    amazon_s3_writer_handler = HandlerFactory.get_handler("AmazonS3WriterHandler")
-    amazon_s3_reader_handler = HandlerFactory.get_handler("AmazonS3ReaderHandler")
-    http_handler = HandlerFactory.get_handler("HTTPHandler")
-    textract_handler = HandlerFactory.get_handler("AmazonTextractHandler")
-    anonymize_handler = HandlerFactory.get_handler("AnonymizeHandler")
-    quip_reader_handler = HandlerFactory.get_handler("QuipReaderHandler")
-    quip_writer_handler = HandlerFactory.get_handler("QuipWriterHandler")
-    http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
-    ms = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
-    chat = HandlerFactory.get_handler("AmazonBedrockChatHandler")
-
-    chain = local_file_reader_handler
-    local_file_reader_handler.set_next(chat)
+    insights = HandlerFactory.get_handler("AmazonComprehendInsightsHandler")
     
-
-    # local_file_reader_handler.set_.set_next(local_file_writer_handler)
-    # amazon_s3_writer_handler.set_next(amazon_transcribe_handler)#.set_next(prompt_handler).set_next(amazon_bedrock_handler)
-
-    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
-    # youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
-    # s3reader_handler.set_next(local_file_writer_handler)
+    chain = pdf_handler
+    pdf_handler.set_next(insights)
 
     return chain
 
 def main():
- # Initialize the argument parser
+    # Initialize the argument parser
     parser = argparse.ArgumentParser(description='Process input files or URLs. Optionally, specify a custom processing chain.')
 
     # Required positional argument for the file/URL to process
@@ -211,8 +195,8 @@ def main():
         "type": input_type,
         "path": args.file_path,
         "prompt_file_name": args.prompt_file_name,
-        "text": "",
-        "write_file_path": output_file
+        "write_file_path": output_file,
+        "text": ""        
     }
 
     # Process the request through the chain

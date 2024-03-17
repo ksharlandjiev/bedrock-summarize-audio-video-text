@@ -2,6 +2,7 @@ from openpyxl import load_workbook
 from handlers.abstract_handler import AbstractHandler
 
 class MicrosoftExcelReaderHandler(AbstractHandler):
+
     def handle(self, request: dict) -> dict:
         print("Processing Excel file...")
 

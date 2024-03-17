@@ -1,18 +1,16 @@
 # handlers/processors/textract_handler.py
-import os
+
 import sys
-import boto3
 import time
 from handlers.abstract_handler import AbstractHandler
-
+from utils.aws_boto_client_manager import AWSBotoClientManager
 
 class AmazonTextractHandler(AbstractHandler):
-    def __init__(self):
-        super().__init__()
-        self.textract_client = boto3.client('textract')
-        self.s3_client = boto3.client('s3')
-
+    
     def handle(self, request: dict) -> dict:
+        self.textract_client = AWSBotoClientManager.get_client('textract')
+        self.s3_client = AWSBotoClientManager.get_client('s3')
+
         path = request.get('path')
         bucket, key = self._parse_s3_path(path)
 
