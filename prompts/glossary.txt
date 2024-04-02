@@ -1,7 +1,7 @@
-Create 5 DataZone business glossaries with at least 3 terms eac based on the input text in <text></text> tag.
+Create 15 DataZone business glossaries with at least 10 terms each based on the input text in <text></text> tag.
 Use the below python script as a template but add terms based on the actual input text.
 Ensure the output is a valid JSON as the example. 
-Return only the the glossary output json. DO not add any explanatory text before or after the JSON. 
+Return only the the glossary output json. Do not add any explanatory text before or after the JSON. 
 <text>
   {input_text}
 </text>

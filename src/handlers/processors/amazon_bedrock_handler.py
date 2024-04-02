@@ -6,8 +6,7 @@ class AmazonBedrockHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
         print("Summarizing text with Bedrock...")
         
-        text = request.get("text", None)
-        
+        text = request.get("text", None)        
         summary = invoke_model(text)
         
         request.update({"text":summary})

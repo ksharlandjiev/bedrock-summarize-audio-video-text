@@ -20,52 +20,6 @@ class QuipWriterHandler(AbstractHandler):
 
         return super().handle(request)
 
-    def write_document2(self, content: str, folder_id: str = None, document_id: str = None) -> dict:
-        """
-        Writes content to a new or existing Quip document.
-        If document_id is provided, updates the existing document; otherwise, creates a new document in the specified folder.
-        """
-        quip_token = os.getenv('QUIP_TOKEN')
-        quip_endpoint = os.getenv('QUIP_ENDPOINT', 'https://platform.quip.com/')
-        default_folder_id = os.getenv('QUIP_DEFAULT_FOLDER_ID')  # New env variable for default folder
-        
-        if not folder_id and not document_id:
-            folder_id = default_folder_id  # Use default folder if none specified
-        
-        if not quip_token:
-            raise ValueError("QUIP_TOKEN environment variable is not set.")
-
-        headers = {'Authorization': f'Bearer {quip_token}'}
-
-        data = {
-            'format': 'html',
-            'type': 'document',
-            'content': content,
-            'member_ids': folder_id
-        }
-
-        if document_id:
-            # Update existing document
-            url = f"{quip_endpoint}/1/threads/{document_id}"
-            url_request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
-        else:
-            # Create new document in specified folder
-            url = f"{quip_endpoint}/1/threads/new-document"
-            
-            data['folder_id'] = folder_id
-            url_request = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')        
-
-        
-        try:
-            url_request.add_header("Content-Type","application/x-www-form-urlencoded")
-            with urllib.request.urlopen(url_request) as response:
-                response_body = response.read()
-                return json.loads(response_body)
-        except HTTPError as e:
-            raise Exception(f"HTTP Error encountered: {e.code} - {e.reason}")
-        except URLError as e:
-            raise Exception(f"URL Error encountered: {e.reason}")
-
     def write_document(self, content: str, folder_id=os.getenv('QUIP_DEFAULT_FOLDER_ID', None), document_id: str = None) -> dict:
         """
         Writes content to a new or existing Quip document.
@@ -74,13 +28,13 @@ class QuipWriterHandler(AbstractHandler):
         """
         quip_token = os.getenv('QUIP_TOKEN')
         quip_endpoint = os.getenv('QUIP_ENDPOINT', 'https://platform.quip.com/')
-        
+
         if not quip_token:
             raise ValueError("QUIP_TOKEN environment variable is not set.")
 
         headers = {
             'Authorization': f'Bearer {quip_token}',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/json'
         }
 
         data = {
@@ -97,16 +51,26 @@ class QuipWriterHandler(AbstractHandler):
         else:
             # Create new document
             url = f"{quip_endpoint}/1/threads/new-document"
-            encoded_data = urllib.parse.urlencode(data).encode('utf-8')
-            url_request = urllib.request.Request(url, data=encoded_data, headers=headers)
-
+            encoded_data = json.dumps(data).encode('utf-8')
+            request = urllib.request.Request(url, data=encoded_data, headers=headers, method='POST')
+            
         try:
-            with urllib.request.urlopen(url_request) as response:
+            with urllib.request.urlopen(request) as response:
+                print(f"Response status code: {response.getcode()}")
                 response_body = response.read()
+                print(f"Response body: {response_body}")
                 return json.loads(response_body)
+
         except HTTPError as e:
+
+            print(f"HTTP Error encountered: {e.code} - {e.reason}")
+
+            print(f"HTTP Error response: {e.read().decode('utf-8')}")
+
             raise Exception(f"HTTP Error encountered: {e.code} - {e.reason}")
+
         except URLError as e:
+
             raise Exception(f"URL Error encountered: {e.reason}")
 
 

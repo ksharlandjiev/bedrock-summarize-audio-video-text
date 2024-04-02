@@ -1,3 +1,6 @@
 Please provide 300 words minimum summary highlighting the most important topics from the following text: {input_text}. 
 
+--
+PII data, such as customer name, and particpants names are tokenized using tokens such as T1, T2, T2, T3...
+Use this tokens to retain context, and use them as names in your summary.
 Do not provide an entry line such as: "Here is a summary of key points from the text:", instead just start with the summary.
