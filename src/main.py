@@ -1,5 +1,5 @@
 #!/opt/anaconda3/bin/python
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import os
 import sys
@@ -144,20 +144,83 @@ def construct_chain(input_type, args):
 
 def construct_custom_chain():
     # Get creative...
-    pdf_handler = HandlerFactory.get_handler("PDFReaderHandler")
-    insights = HandlerFactory.get_handler("AmazonComprehendInsightsHandler")
+    # youtube_handler = HandlerFactory.get_handler("YouTubeReaderHandler")
+    # amazon_transcribe_handler = HandlerFactory.get_handler("AmazonTranscriptionHandler")
     
-    chain = pdf_handler
-    pdf_handler.set_next(insights)
+    # local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
+    local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
+    # pdf_handler = HandlerFactory.get_handler("PDFReaderHandler")
+    prompt_handler = HandlerFactory.get_handler("PromptHandler")
+    amazon_bedrock_handler = HandlerFactory.get_handler("AmazonBedrockHandler")
+
+    # amazon_s3_writer_handler = HandlerFactory.get_handler("AmazonS3WriterHandler")
+    # amazon_s3_reader_handler = HandlerFactory.get_handler("AmazonS3ReaderHandler")
+    # http_handler = HandlerFactory.get_handler("HTTPHandler")
+    # textract_handler = HandlerFactory.get_handler("AmazonTextractHandler")
+    # anonymize_handler = HandlerFactory.get_handler("AnonymizeHandler")
+    # quip_reader_handler = HandlerFactory.get_handler("QuipReaderHandler")
+    # quip_writer_handler = HandlerFactory.get_handler("QuipWriterHandler")
+    # http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
+    ms = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
+    # chat = HandlerFactory.get_handler("AmazonBedrockChatHandler")
+
+    dz = HandlerFactory.get_handler("AmazonDataZoneGlossaryWriterHandler")
+    # tokenize = HandlerFactory.get_handler("AmazonComprehendPIITokenizeHandler")
+    # untokenize = HandlerFactory.get_handler("AmazonComprehendPIIUntokenizeHandler")
+    # insights = HandlerFactory.get_handler("AmazonComprehendInsightsHandler")
+    # printh = HandlerFactory.get_handler("PrintContextHandler")
+    # download = HandlerFactory.get_handler("RemoteFileDownloaderHandler")
+    # chain = pdf_handler
+    # pdf_handler.set_next(quip_writer_handler)
+    
+    #DataZone use case
+    chain = ms
+    ms.set_next(prompt_handler).set_next(amazon_bedrock_handler).set_next(dz).set_next(local_file_writer_handler)
+
+    # ms.set_next(tokenize).set_next(untokenize)
+    
+
+    # local_file_reader_handler.set_.set_next(local_file_writer_handler)
+    
+    # http_handler.set_next(quip_writer_handler)
+
+    # amazon_s3_writer_handler.set_next(amazon_transcribe_handler)#.set_next(prompt_handler).set_next(amazon_bedrock_handler)
+    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
+    
+    # youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+    # s3reader_handler.set_next(local_file_writer_handler)
 
     return chain
 
+def process_file(file_path, args):
+    print(f"Processing: {file_path}")
+
+    input_type = determine_input_type(file_path)
+    handler_chain = construct_chain(input_type, args)
+
+    # Prepare the output filename with the current date and time
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_file = f"./downloads/output_{os.path.basename(file_path)}_{current_time}.txt"
+    
+    
+    request = {
+        "type": input_type,
+        "path": file_path,
+        "prompt_file_name": args.prompt_file_name,
+        "text": "",
+        "write_file_path": output_file
+    }
+
+    result = handler_chain.handle(request)
+    return result
+
+
 def main():
-    # Initialize the argument parser
+ # Initialize the argument parser
     parser = argparse.ArgumentParser(description='Process input files or URLs. Optionally, specify a custom processing chain.')
 
     # Required positional argument for the file/URL to process
-    parser.add_argument('file_path', type=str, help='The path to the file or URL to be processed.')
+    parser.add_argument('path', type=str, help='The path to the file, folder or URL to be processed.')
 
     # Optional positional argument for the prompt file name, with a default value
     parser.add_argument('prompt_file_name', nargs='?', default='default_prompt', help='The name of the prompt file. Defaults to "default_prompt" if not specified.')
@@ -176,37 +239,20 @@ def main():
 
     # Handler discovery
     HandlerFactory.discover_handlers()
-
-    # Determine the input type or use the custom chain based on the command-line argument
-    if args.custom:
-        input_type = "custom"
+ 
+    if os.path.isdir(args.path):
+        max_processes = int(os.getenv('MAX_PARALLEL_PROCESSES', 1))
+        with ThreadPoolExecutor(max_workers=max_processes) as executor:
+            futures = [executor.submit(process_file, os.path.join(args.path, f), args) for f in os.listdir(args.path) if os.path.isfile(os.path.join(args.path, f))]
+            for future in as_completed(futures):
+                result = future.result()
     else:
-        input_type = determine_input_type(args.file_path)
-
-    # Construct the appropriate processing chain
-    handler_chain = construct_chain(input_type, args)
-
-    # Prepare the output filename with the current date and time
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_file = f"./downloads/output_{current_time}.txt"
-    
-    # Package the request
-    request = {
-        "type": input_type,
-        "path": args.file_path,
-        "prompt_file_name": args.prompt_file_name,
-        "write_file_path": output_file,
-        "text": ""        
-    }
-
-    # Process the request through the chain
-    result = handler_chain.handle(request)
+        result = process_file(args.path, args)
 
     if result.get("text", None):
         print(result.get("text"))
     else:
-        print(result)
-
+        print(result)  
 
 if __name__ == "__main__":
     main()
