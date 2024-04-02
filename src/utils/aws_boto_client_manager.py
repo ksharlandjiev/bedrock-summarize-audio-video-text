@@ -6,9 +6,9 @@ class AWSBotoClientManager:
     _clients = {}
 
     @classmethod
-    def get_client(cls, service_name):
+    def get_client(cls, service_name, AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')):
      
-        AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+        
         my_config = Config(region_name=AWS_DEFAULT_REGION)
                 
         if service_name not in cls._clients:
