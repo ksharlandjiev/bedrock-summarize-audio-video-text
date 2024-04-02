@@ -40,6 +40,7 @@ class AmazonComprehendPIIUntokenizeHandler(AbstractHandler):
         """
         Replaces tokens in text with original PII values.
         """
+        
         for token, pii_value in token_map.items():
             text = text.replace(token, pii_value)
         return text

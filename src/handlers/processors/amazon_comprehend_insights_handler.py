@@ -4,9 +4,9 @@ from utils.aws_boto_client_manager import AWSBotoClientManager
 class AmazonComprehendInsightsHandler(AbstractHandler):
     
     def handle(self, request: dict) -> dict:
-
+        
         self.comprehend = AWSBotoClientManager.get_client('comprehend')
-        self.max_bytes = 4000  # Amazon Comprehend's size limit of 5000kb for various operations
+        self.max_bytes = 3000  # Amazon Comprehend's size limit of 5000kb for various operations
         
         print("Extracting insights from text...")
         text = request.get("text", None)    
@@ -21,11 +21,15 @@ class AmazonComprehendInsightsHandler(AbstractHandler):
                 key_phrases.extend(self.detect_key_phrases(chunk))
             
             # Aggregate the insights and append to the request object
-            request["text"] = {
+            aggregated_data = {
                 "sentiment": max(set(sentiments), key=sentiments.count),  # Aggregation by most frequent sentiment
                 "entities": entities,  # Entities from all chunks
                 "key_phrases": key_phrases  # Key phrases from all chunks
             }
+
+            # updating the request body and adding the aggregated data.
+            request.update({"text": aggregated_data})
+            
         else:
             print("No text provided for insights extraction.")
 
