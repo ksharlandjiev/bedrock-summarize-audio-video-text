@@ -8,5 +8,6 @@ pdfminer.six
 bs4
 jsonpath_ng
 python-docx
+python-pptx
 openpyxl
 python-ffmpeg

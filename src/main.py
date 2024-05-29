@@ -28,6 +28,8 @@ def determine_input_type(file_path):
         return "microsoft_word"
     elif file_path.endswith(('.xlsx','.xlsm','.xltx','.xltm')):
         return "microsoft_excel"
+    elif file_path.endswith('.pptx'):
+        return "microsoft_pp"
     elif file_path.endswith(('.jpg', '.jpeg', '.png', '.tiff')):
         return "image_file"    
     elif file_path.endswith(('.txt', '.json')):
@@ -37,7 +39,8 @@ def determine_input_type(file_path):
         return "text_or_json"
 
 def construct_chain(input_type, args):
-
+    
+    
     # Use if-elif-else to construct the appropriate chain. In Python 3.10 we could use match statement.
     if input_type == "youtube_url":
         youtube_handler = HandlerFactory.get_handler("YouTubeReaderHandler")
@@ -54,21 +57,24 @@ def construct_chain(input_type, args):
 
         chain = s3writer_handler
         current_handler = s3writer_handler.set_next(transcription_handler).set_next(local_file_writer_handler)
+     
     elif input_type == "image_file":
         local_file_reader_handler = HandlerFactory.get_handler("LocalFileReaderHandler")
         textract_handler = HandlerFactory.get_handler("AmazonTextractHandler")
 
         chain = local_file_reader_handler
-        current_handler = local_file_reader_handler.set_next(textract_handler)        
+        current_handler = local_file_reader_handler.set_next(textract_handler).set_next(local_file_writer_handler)       
     elif input_type == "pdf":
         pdf_handler = HandlerFactory.get_handler("PDFReaderHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
 
         chain = pdf_handler
-        current_handler = pdf_handler 
+        current_handler = pdf_handler.set_next(local_file_writer_handler)
+
     elif input_type == "http":
         http_handler = HandlerFactory.get_handler("HTTPHandler")
-        http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
-        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
+        http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")      
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")  
 
         chain = http_handler
         current_handler = http_handler.set_next(http_clean_handler).set_next(local_file_writer_handler)
@@ -85,14 +91,26 @@ def construct_chain(input_type, args):
     elif input_type == "quip":
         quip_reader_handler = HandlerFactory.get_handler("QuipReaderHandler")
         http_clean_handler = HandlerFactory.get_handler("HTMLCleanerHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
 
         chain = quip_reader_handler
-        current_handler = quip_reader_handler.set_next(http_clean_handler)
+        current_handler = quip_reader_handler.set_next(http_clean_handler).set_next(local_file_writer_handler)
     elif input_type == "microsoft_word":
-        chain = current_handler = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
+        msword_handler = HandlerFactory.get_handler("MicrosoftWordReaderHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
+        chain = msword_handler
+        current_handler = msword_handler.set_next(local_file_writer_handler)
+    
     elif input_type == "microsoft_excel":
-        chain = current_handler = HandlerFactory.get_handler("MicrosoftExcelReaderHandler")
-
+        xls_hanlder = HandlerFactory.get_handler("MicrosoftExcelReaderHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
+        chain = xls_hanlder
+        current_handler = xls_hanlder.set_next(local_file_writer_handler)
+    elif input_type == "microsoft_pp":
+        pp_handler = HandlerFactory.get_handler("MicrosoftPowerPointReaderHandler")
+        local_file_writer_handler = HandlerFactory.get_handler("LocalFileWriterHandler")
+        chain = pp_handler
+        current_handler = pp_handler.set_next(local_file_writer_handler)
     elif input_type == "custom":
         return construct_custom_chain() # for testing only
             # construct and return a custom chain.    
@@ -141,6 +159,7 @@ def construct_chain(input_type, args):
         print("\n\n  ================================================\n   The summary will be copied to your clipboard.\n  ================================================\n")    
         
     return chain
+
 
 def construct_custom_chain():
     # Get creative...
@@ -194,13 +213,17 @@ def construct_custom_chain():
 
 def process_file(file_path, args):
     print(f"Processing: {file_path}")
-
-    input_type = determine_input_type(file_path)
+    if args.custom:
+        input_type = "custom"
+    else:
+        input_type = determine_input_type(file_path)
+    
     handler_chain = construct_chain(input_type, args)
 
     # Prepare the output filename with the current date and time
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_file = f"./downloads/output_{os.path.basename(file_path)}_{current_time}.txt"
+    local_dir = os.getenv('DIR_STORAGE', './downloads')
+    output_file = f"{local_dir}/output_{os.path.basename(file_path)}_{current_time}.txt"
     
     
     request = {

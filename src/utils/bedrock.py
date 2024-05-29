@@ -8,6 +8,7 @@ from jsonpath_ng import jsonpath, parse
 
 # External Dependencies:
 import boto3
+from botocore.client import Config
 
 def invoke_model(prompt_text, modelId=os.environ.get("AMAZON_BEDROCK_MODEL_ID", 'anthropic.claude-v2')):
     """
@@ -16,7 +17,8 @@ def invoke_model(prompt_text, modelId=os.environ.get("AMAZON_BEDROCK_MODEL_ID", 
 
     try:
         # boto3_bedrock = bedrock.get_bedrock_client( assumed_role=os.environ.get("BEDROCK_ASSUME_ROLE", None), region=os.environ.get("AWS_DEFAULT_REGION", None))
-        boto3_bedrock = boto3.client(service_name="bedrock-runtime", region_name=os.environ.get("AWS_DEFAULT_REGION", 'us-east-1'))
+        config = Config(connect_timeout=900)
+        boto3_bedrock = boto3.client(service_name="bedrock-runtime", region_name=os.environ.get("AWS_DEFAULT_REGION", 'us-east-1'), config=config)
 
     except e:
         print(f"Failed to create Bedrock client: {e}")

@@ -17,6 +17,7 @@ The application employs the Chain of Responsibility design pattern to process in
 
 - **Amazon Transcribe**: Converts spoken words in audio or video files into text, producing accurate transcriptions.
 - **Amazon Textract**: Automatically extract printed text, handwriting, layout elements, and data from any document.
+- **Amazon Comprehend**: Natural-language processing (NLP) service used to extract valuable insights and PII data in text.
 - **Amazon Bedrock**: Employs advanced AI models to summarize text, making it easier to digest large volumes of information.
 - **Amazon S3**: Acts as a storage solution for the input files and the generated outputs, including transcripts and summaries.
 - **Others** - Such as Quip for example.
@@ -28,19 +29,27 @@ The processing chain is composed of several handlers, that are dedicated to a pa
 Readers:
 - **LocalFileReaderHandler**: Handles local audio, video, and text files for processing.
 - **S3ReaderHandler**: Manages the reading and downloading of S3 objects (files) from Amazon S3.
+= **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags.
+
 - **PDFReaderHandler**: Extracts text from PDF documents for summarization.
-= **HTTPHandler**: Generic HTTP handler that allows you to fetch HTML data from http(s) endpoints. It uses BeautifulSoup to clean HTML tags. 
+- **MicrosoftExcelReaderHandler**: Extract text from Microsoft Excel documents.
+- **MicrosoftWordReaderHandler**: Extract text from Microsoft Word documents.
+- **QuipReaderHandler**: Extract text from Quip document.
 - **YouTubeReaderHandler**: Downloads videos from YouTube URLs and extracts audio.
 
 Processors:
 - **AmazonBedrockHandler**: Summarizes text content using Amazon Bedrock.
+- **AmazonBedrockChatHandler**: Used to perform interactive chat with Amazon Bedrock using the messages API.
+- **AmazonComprehendInsightsHandler**: Extract valuable insights from your data using Amazon Comprehend NLP capabilities.
+- **AmazonComprehendPIIHandler**, **AmazonComprehendPIITokenizeHandler** and **AmazonComprehendPIIUntokenizeHandler**: Used to detect, tokenize and untokenize PII data in your text retaining the context and allowing downstream services such as Bedrock to process the data without PII.
 - **AmazonTranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
 - **AmazonTextractHandler**: Extracts text from images such as .jpg, .png, .tiff
-- **AnonymizeHandler**: Configurable via .env - will use SpaCy library to anonymize customer names. 
+- **AnonymizeHandler**: Configurable via .env - will use a local SpaCy NLP model to anonymize customer names. **Deprecated in favour of Amazon Comprehend Detect PII**
+-  **HTMLCleanerHandler**: Used to clean HTML tags when consuming web page / HTML documents.
 - **PromptHandler**: Uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
 
 Writers:
-- **S3WriterHandler**: Manages the uploading of of S3 objects (files) to Amazon S3.
+-**S3WriterHandler**: Manages the uploading of of S3 objects (files) to Amazon S3.
 -**LocalFileWriterHandler**: Writes output into a local file.
 -**ClipboardWriterHandler**: Writes output into clipboard.
 
