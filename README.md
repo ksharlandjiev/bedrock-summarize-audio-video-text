@@ -60,20 +60,25 @@ Handlers are linked together in a chain, where each handler passes its output to
 You can customize the processing chain in main.py by setting the sequence of handlers according to your specific needs. Here is an example of how to construct a custom processing chain:
 ```python
 from handlers.handler_factory import HandlerFactory
+from dotenv import load_dotenv
 
-def construct_chain():
-    youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
-    amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
-    amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
-    amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
-    anonymize_handler =  HandlerFactory.get_handler("AnonymizeHandler")
-    prompt_handler =  HandlerFactory.get_handler("PromptHandler")
+# Load environment variables from .env file
+load_dotenv()
 
-    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
-    youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
+amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
+amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
+amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
+anonymize_handler =  HandlerFactory.get_handler("AnonymizeHandler")
+prompt_handler =  HandlerFactory.get_handler("PromptHandler")
 
-    request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
-    youtube_handler.handle(request)
+# Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
+youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+
+request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
+result = youtube_handler.handle(request)
+
+print(result.get("text"))
 ```
 
 With the introduction of dynamic handler discovery and command-line arguments, you can now easily customize or specify custom processing chains without altering the codebase. The CLI supports flags for using predefined or custom chains based on runtime arguments.
