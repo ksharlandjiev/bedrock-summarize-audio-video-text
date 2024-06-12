@@ -69,11 +69,12 @@ youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
 amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
 amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
 amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
-anonymize_handler =  HandlerFactory.get_handler("AnonymizeHandler")
+anonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIITokenizeHandler")
+unanonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIIUntokenizeHandler")
 prompt_handler =  HandlerFactory.get_handler("PromptHandler")
 
-# Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
-youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+# Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Detect & Tokenize PII >> Construct a prompt >> Summarize using Amazon Bedrock. >> Untokenize PII
+youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler).set_next(unanonymize_handler)
 
 request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
 result = youtube_handler.handle(request)
