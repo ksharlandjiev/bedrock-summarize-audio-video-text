@@ -22,7 +22,7 @@ class AmazonS3WriterHandler(AbstractHandler):
             if file_path:
                 # Default behavior if `file_path` is provided
                 print(f"Writing {file_path} to s3://{bucket_name}/{folder_path}")
-                s3_file_path = self.upload_file_to_s3(file_path, bucket_name, folder_path)
+                s3_file_path = self.upload_file_to_s3(file_path, bucket_name, folder_path, filename)
                 s3_path = f"s3://{bucket_name}/{s3_file_path}"
                 request.update({"path": s3_path})
 
@@ -31,7 +31,7 @@ class AmazonS3WriterHandler(AbstractHandler):
                 file_extension = self.get_file_extension(write_file_path)
                 temp_file_path = self.create_temp_file_with_text(text, file_extension)
                 print(f"Writing text to s3://{bucket_name}/{folder_path}/{filename}")
-                s3_file_path = self.upload_file_to_s3(temp_file_path, bucket_name, folder_path)
+                s3_file_path = self.upload_file_to_s3(temp_file_path, bucket_name, folder_path, filename)
                 s3_path = f"s3://{bucket_name}/{folder_path}/{filename}"
                 request.update({"path": s3_path})
 
@@ -40,7 +40,8 @@ class AmazonS3WriterHandler(AbstractHandler):
             bucket_name = os.getenv('BUCKET_NAME')
             s3_folder = os.getenv('S3_FOLDER')
             print(f"Writing {file_path} to s3://{bucket_name}/{s3_folder}")
-            s3_file_path = self.upload_file_to_s3(file_path, bucket_name, s3_folder)
+            file_name = os.path.basename(file_path)
+            s3_file_path = self.upload_file_to_s3(file_path, bucket_name, s3_folder, file_name)
             s3_path = f"s3://{bucket_name}/{s3_file_path}"
             request.update({"path": s3_path})
 
@@ -49,12 +50,11 @@ class AmazonS3WriterHandler(AbstractHandler):
 
         return super().handle(request)
 
-    def upload_file_to_s3(self, file_path, bucket_name, s3_folder):
+    def upload_file_to_s3(self, file_path, bucket_name, s3_folder, file_name):
         """
         Uploads a file to an S3 bucket and returns the S3 path.
         """
-        s3_client = AWSBotoClientManager.get_client("s3")
-        file_name = os.path.basename(file_path)
+        s3_client = AWSBotoClientManager.get_client("s3")        
         s3_path = f"{s3_folder}{file_name}"
         s3_client.upload_file(file_path, bucket_name, s3_path)
 

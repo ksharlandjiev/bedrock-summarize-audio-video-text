@@ -22,7 +22,7 @@ def invoke_model(prompt_text, modelId=os.environ.get("AMAZON_BEDROCK_MODEL_ID", 
 
     except e:
         print(f"Failed to create Bedrock client: {e}")
-        return
+        raise e
     
     body = json.loads(os.environ.get("AMAZON_BEDROCK_MODEL_PROPS", {"max_tokens_to_sample":4096, "temperature":0.5, "top_k":250, "top_p":0.5, "stop_sequences":[] }))
     prompt_template = os.environ.get("AMAZON_BEDROCK_PROMPT_TEMPLATE", None)
@@ -67,3 +67,4 @@ def invoke_model(prompt_text, modelId=os.environ.get("AMAZON_BEDROCK_MODEL_ID", 
         
     except Exception as e:
         print(f"Failed to invoke model: {e}")
+        raise e

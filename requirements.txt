@@ -2,7 +2,7 @@ boto3
 python-dotenv
 pyperclip
 spacy
-pytube
+pytubefix
 moviepy
 pdfminer.six
 bs4
@@ -11,3 +11,6 @@ python-docx
 python-pptx
 openpyxl
 python-ffmpeg
+fitz
+pymupdf
+pillow

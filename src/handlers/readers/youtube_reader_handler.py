@@ -1,10 +1,10 @@
 import os
 from handlers.abstract_handler import AbstractHandler
-from pytube import YouTube
+from pytubefix import YouTube
 import moviepy.editor as mp
+
 class YouTubeReaderHandler(AbstractHandler):
     def handle(self, request: dict) -> dict:
-
         url = str(request.get("path"))
         print("Downloading YouTube video from: ", url)
 
@@ -22,7 +22,6 @@ class YouTubeReaderHandler(AbstractHandler):
             os.makedirs(output_path)
 
         # Download video from YouTube
-            
         yt = YouTube(url)
         video = yt.streams.filter(only_audio=True).first()
         out_file = video.download(output_path)

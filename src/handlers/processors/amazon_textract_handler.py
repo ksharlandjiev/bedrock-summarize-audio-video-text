@@ -21,9 +21,7 @@ class AmazonTextractHandler(AbstractHandler):
                 if key.endswith('.pdf'):
                     text =  self._process_pdf(bucket, key)
                 else:
-                    text =  self._process_image(bucket, key)
-                
-                
+                    text =  self._process_image(bucket, key)                
             else:
                 text =  self._extract_text_local(path)
             
