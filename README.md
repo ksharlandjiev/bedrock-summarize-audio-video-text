@@ -44,8 +44,7 @@ Processors:
 - **AmazonComprehendPIIHandler**, **AmazonComprehendPIITokenizeHandler** and **AmazonComprehendPIIUntokenizeHandler**: Used to detect, tokenize and untokenize PII data in your text retaining the context and allowing downstream services such as Bedrock to process the data without PII.
 - **AmazonTranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
 - **AmazonTextractHandler**: Extracts text from images such as .jpg, .png, .tiff
-- **AnonymizeHandler**: Configurable via .env - will use a local SpaCy NLP model to anonymize customer names. **Deprecated in favour of Amazon Comprehend Detect PII**
--  **HTMLCleanerHandler**: Used to clean HTML tags when consuming web page / HTML documents.
+- **HTMLCleanerHandler**: Used to clean HTML tags when consuming web page / HTML documents.
 - **PromptHandler**: Uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
 
 Writers:
@@ -108,17 +107,13 @@ pip install -r requirements.txt
 ```
 
 ### Configuration
-1. **Installing spaCy and Language Models** Download the English language model (or any model you prefer):**
-```bash
-python -m spacy download en_core_web_sm
-```
-2. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
+1. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
 
-3. **Create a `.env` file** at the root of your project directory.
+2. **Create a `.env` file** at the root of your project directory.
 
-4. Configure access to Amazon Bedrock models: 
+3. Configure access to Amazon Bedrock models: 
     -  Login in your Amazon Bedrock console, click Model Access > Manage model Access. Select the models you want to use (for example Claude 3 Sonnet) and click Save changes.
-5. **Add your AWS S3 configuration** to the `.env` file:
+4. **Add your AWS S3 configuration** to the `.env` file:
 
 ```bash
 # .env file
@@ -131,8 +126,13 @@ BUCKET_NAME=your-s3-bucket-name
 S3_FOLDER=uploads/
 OUTPUT_FOLDER=transcriptions/
 
+# Local download folder
+DIR_STORAGE="./downloads"
+
 # Amazon Bedrock Settings
-AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
+AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-5-sonnet-20240620-v1:0"
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-haiku-20240307-v1:0"
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
 AMAZON_BEDROCK_MODEL_PROPS='{"max_tokens":4096, "anthropic_version": "bedrock-2023-05-31", "messages": [{"role": "user", "content": ""}]}'
 AMAZON_BEDROCK_PROMPT_TEMPLATE="{prompt_text}"
 AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.messages[0].content"
@@ -152,12 +152,6 @@ AMAZON_BEDROCK_OUTPUT_JSONPATH="$.content[0].text"
 
 # Copy output to clipboard
 CLIPBOARD_COPY=false
-
-# For Anonymization
-ANONYMIZE_CUSTOMER_NAME_REPLACEMENT="[Customer]"
-
-# Local download folder
-DIR_STORAGE="downloads"
 
 # Used for integration with Quip
 QUIP_TOKEN="<your_personal_token>"
