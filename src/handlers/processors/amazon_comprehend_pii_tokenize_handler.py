@@ -15,7 +15,7 @@ class AmazonComprehendPIITokenizeHandler(AbstractHandler):
         text = request.get("text", None)
         
         # Determine chunk size
-        max_size = 100000  # AWS Comprehend limit in bytes
+        max_size = 99995  # AWS Comprehend limit in bytes
         chunks = self.chunk_text(text, max_size)
         
         pii_tokens = []
@@ -44,23 +44,25 @@ class AmazonComprehendPIITokenizeHandler(AbstractHandler):
         """
         words = text.split()
         chunks = []
-        current_chunk = ""
+        current_chunk = []
         current_size = 0
         current_offset = 0
         
         for word in words:
             word_size = len(word.encode('utf-8'))
-            if current_size + word_size > max_size:
-                chunks.append({'text': current_chunk, 'offset': current_offset})
-                current_offset += len(current_chunk)
-                current_chunk = word + " "
-                current_size = word_size + 1  # +1 for the space
+            if current_size + word_size + len(current_chunk) > max_size:
+                chunk_text = " ".join(current_chunk)
+                chunks.append({'text': chunk_text, 'offset': current_offset})
+                current_offset += len(chunk_text) + 1  # +1 for the space after the chunk
+                current_chunk = [word]
+                current_size = word_size
             else:
-                current_chunk += word + " "
-                current_size += word_size + 1
+                current_chunk.append(word)
+                current_size += word_size
         
         if current_chunk:
-            chunks.append({'text': current_chunk, 'offset': current_offset})
+            chunk_text = " ".join(current_chunk)
+            chunks.append({'text': chunk_text, 'offset': current_offset})
         
         return chunks
 
