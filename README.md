@@ -44,8 +44,7 @@ Processors:
 - **AmazonComprehendPIIHandler**, **AmazonComprehendPIITokenizeHandler** and **AmazonComprehendPIIUntokenizeHandler**: Used to detect, tokenize and untokenize PII data in your text retaining the context and allowing downstream services such as Bedrock to process the data without PII.
 - **AmazonTranscriptionHandler**: Transcribes audio files into text using Amazon Transcribe.
 - **AmazonTextractHandler**: Extracts text from images such as .jpg, .png, .tiff
-- **AnonymizeHandler**: Configurable via .env - will use a local SpaCy NLP model to anonymize customer names. **Deprecated in favour of Amazon Comprehend Detect PII**
--  **HTMLCleanerHandler**: Used to clean HTML tags when consuming web page / HTML documents.
+- **HTMLCleanerHandler**: Used to clean HTML tags when consuming web page / HTML documents.
 - **PromptHandler**: Uses a minimalistic prompt framework - all your prompts can be stored in the prompts/ folder and you can select which prompt to use when invoking the main.py.
 
 Writers:
@@ -60,20 +59,26 @@ Handlers are linked together in a chain, where each handler passes its output to
 You can customize the processing chain in main.py by setting the sequence of handlers according to your specific needs. Here is an example of how to construct a custom processing chain:
 ```python
 from handlers.handler_factory import HandlerFactory
+from dotenv import load_dotenv
 
-def construct_chain():
-    youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
-    amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
-    amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
-    amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
-    anonymize_handler =  HandlerFactory.get_handler("AnonymizeHandler")
-    prompt_handler =  HandlerFactory.get_handler("PromptHandler")
+# Load environment variables from .env file
+load_dotenv()
 
-    # Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Construct a prompt >> Summarize using Amazon Bedrock.
-    youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler)
+youtube_handler =  HandlerFactory.get_handler("YouTubeReaderHandler")
+amazon_s3_writer_handler =  HandlerFactory.get_handler("AmazonS3WriterHandler")
+amazon_transcribe_handler =  HandlerFactory.get_handler("AmazonTranscriptionHandler")
+amazon_bedrock_handler =  HandlerFactory.get_handler("AmazonBedrockHandler")
+anonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIITokenizeHandler")
+unanonymize_handler = HandlerFactory.get_handler("AmazonComprehendPIIUntokenizeHandler")
+prompt_handler =  HandlerFactory.get_handler("PromptHandler")
 
-    request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
-    youtube_handler.handle(request)
+# Read Youtube Video >> Save Audio in Amazon S3 >> Extract text from speach (Amazon Transcribe) >> Detect & Tokenize PII >> Construct a prompt >> Summarize using Amazon Bedrock. >> Untokenize PII
+youtube_handler.set_next(amazon_s3_writer_handler).set_next(amazon_transcribe_handler).set_next(prompt_handler).set_next(anonymize_handler).set_next(amazon_bedrock_handler).set_next(unanonymize_handler)
+
+request = {"path": "https://www.youtube.com/watch?v=tQi97_DWi6A", "prompt_file_name": "default_prompt"}
+result = youtube_handler.handle(request)
+
+print(result.get("text"))
 ```
 
 With the introduction of dynamic handler discovery and command-line arguments, you can now easily customize or specify custom processing chains without altering the codebase. The CLI supports flags for using predefined or custom chains based on runtime arguments.
@@ -102,17 +107,13 @@ pip install -r requirements.txt
 ```
 
 ### Configuration
-1. **Installing spaCy and Language Models** Download the English language model (or any model you prefer):**
-```bash
-python -m spacy download en_core_web_sm
-```
-2. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
+1. **Install [ffmpeg](https://www.ffmpeg.org/download.html)**
 
-3. **Create a `.env` file** at the root of your project directory.
+2. **Create a `.env` file** at the root of your project directory.
 
-4. Configure access to Amazon Bedrock models: 
+3. Configure access to Amazon Bedrock models: 
     -  Login in your Amazon Bedrock console, click Model Access > Manage model Access. Select the models you want to use (for example Claude 3 Sonnet) and click Save changes.
-5. **Add your AWS S3 configuration** to the `.env` file:
+4. **Add your AWS S3 configuration** to the `.env` file:
 
 ```bash
 # .env file
@@ -125,8 +126,13 @@ BUCKET_NAME=your-s3-bucket-name
 S3_FOLDER=uploads/
 OUTPUT_FOLDER=transcriptions/
 
+# Local download folder
+DIR_STORAGE="./downloads"
+
 # Amazon Bedrock Settings
-AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
+AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-5-sonnet-20240620-v1:0"
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-haiku-20240307-v1:0"
+# AMAZON_BEDROCK_MODEL_ID="anthropic.claude-3-sonnet-20240229-v1:0"
 AMAZON_BEDROCK_MODEL_PROPS='{"max_tokens":4096, "anthropic_version": "bedrock-2023-05-31", "messages": [{"role": "user", "content": ""}]}'
 AMAZON_BEDROCK_PROMPT_TEMPLATE="{prompt_text}"
 AMAZON_BEDROCK_PROMPT_INPUT_VAR="$.messages[0].content"
@@ -146,12 +152,6 @@ AMAZON_BEDROCK_OUTPUT_JSONPATH="$.content[0].text"
 
 # Copy output to clipboard
 CLIPBOARD_COPY=false
-
-# For Anonymization
-ANONYMIZE_CUSTOMER_NAME_REPLACEMENT="[Customer]"
-
-# Local download folder
-DIR_STORAGE="downloads"
 
 # Used for integration with Quip
 QUIP_TOKEN="<your_personal_token>"
